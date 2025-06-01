@@ -95,11 +95,56 @@ def get_legal_moves(board: list[list[str]], player: str) -> list[tuple[tuple[int
     # According to standard rules, if any capture is possible, it must be taken
     return capture_moves if capture_moves else legal_moves
 
+def check_game_over(
+    board: list[list[str]], 
+    player: str, 
+    legal_moves: list[tuple[tuple[int, int], tuple[int, int]]] | None = None
+) -> dict:
+    """
+    Checks if the game has ended, optionally using precomputed legal moves.
+
+    Args:
+        board (list[list[str]]): The current board state.
+        player (str): The current player ('r' or 'b').
+        legal_moves (list or None): Precomputed legal moves for the player.
+
+    Returns:
+        dict: {
+            "game_over": bool,
+            "winner": Optional[str]  # 'r', 'b', or None
+        }
+    """
+    opponent = 'b' if player == 'r' else 'r'
+    player_pieces = {'r', 'R'} if player == 'r' else {'b', 'B'}
+    opponent_pieces = {'b', 'B'} if player == 'r' else {'r', 'R'}
+
+    # Check if the player or opponent has no pieces
+    player_has_pieces = any(cell in player_pieces for row in board for cell in row)
+    opponent_has_pieces = any(cell in opponent_pieces for row in board for cell in row)
+
+    if not player_has_pieces:
+        return {"game_over": True, "winner": opponent}
+    if not opponent_has_pieces:
+        return {"game_over": True, "winner": player}
+
+    # Use provided legal moves or generate them
+    if legal_moves is None:
+        legal_moves = get_legal_moves(board, player)
+
+    # If no legal moves, the player loses
+    if not legal_moves:
+        return {"game_over": True, "winner": opponent}
+
+    return {"game_over": False, "winner": None}
+
+
 # TODO: documentation and comments
 def play(board: list[list[str]], player: str, depth: int = 3):
 
     if not is_request_valid(board, player, depth):
         return {"error": "invalid request"}
+
+    print(check_game_over(board, player, get_legal_moves(board, player)))
 
     return {"move": "not implemented"} # TODO
 
