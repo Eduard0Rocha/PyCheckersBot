@@ -1,3 +1,4 @@
+from core.utils import is_request_valid
 
 def evaluate_board(board: list[list[str]], player: str) -> int:
     """
@@ -25,8 +26,13 @@ def evaluate_board(board: list[list[str]], player: str) -> int:
     # If the player is Red, return the score, otherwise return the negated score (from Red's perspective)
     return score if player == "r" else -score
 
-# TODO: documentation
+
+
+# TODO: documentation and comments
 def play(board: list[list[str]], player: str, depth: int = 3):
+
+    if not is_request_valid(board, player, depth):
+        return {"error": "invalid request"}
 
     return {"move": "not implemented"} # TODO
 
