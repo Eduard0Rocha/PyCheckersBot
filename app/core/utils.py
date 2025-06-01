@@ -88,5 +88,19 @@ def is_request_valid(board: list[list[str]], player: str, depth: int) -> bool:
         validate_depth(depth)
     )
 
-# Limit exports to only the is_request_valid function
-__all__ = ["is_request_valid"]
+def print_board(board: list[list[str]]) -> None:
+    """
+    Prints the checkers board in a human-readable format for debugging.
+
+    Args:
+        board (list[list[str]]): The 8x8 board to print.
+    """
+    print("   " + " ".join(str(col) for col in range(8)))  # Column headers
+    print(" +" + "-" * 17 + "+")  # Top border
+    for i, row in enumerate(board):
+        row_str = " ".join(cell if cell != ' ' else '.' for cell in row)
+        print(f"{i}| {row_str} |")  # Row index and row contents
+    print(" +" + "-" * 17 + "+")  # Bottom border
+
+# Limit exports to only the is_request_valid and print_board functions
+__all__ = ["is_request_valid", "print_board"]

@@ -1,4 +1,4 @@
-from core.utils import is_request_valid
+from core.utils import is_request_valid, print_board
 
 def evaluate_board(board: list[list[str]], player: str) -> int:
     """
@@ -137,15 +137,57 @@ def check_game_over(
 
     return {"game_over": False, "winner": None}
 
+def apply_move(board: list[list[str]], move: tuple[tuple[int, int], tuple[int, int]]) -> list[list[str]]:
+    """
+    Applies a move to the given board and returns the resulting new board.
+
+    A move can be:
+    - A simple diagonal move to an adjacent empty square.
+    - A capture move, where the opponent's piece is removed after a jump.
+
+    The function also handles piece promotion:
+    - A red piece ('r') becomes a king ('R') if it reaches the top row (0).
+    - A black piece ('b') becomes a king ('B') if it reaches the bottom row (7).
+
+    Args:
+        board (list[list[str]]): The current 8x8 board state.
+        move (tuple): A tuple representing the move:
+            ((from_row, from_col), (to_row, to_col))
+
+    Returns:
+        list[list[str]]: A new board state after applying the move.
+    """
+    from_row, from_col = move[0]
+    to_row, to_col = move[1]
+
+    # Make a deep copy of the board to avoid modifying the original
+    new_board = [row.copy() for row in board]
+
+    # Move the piece from its original position
+    piece = new_board[from_row][from_col]
+    new_board[from_row][from_col] = ' '
+    new_board[to_row][to_col] = piece
+
+    # If it's a capture move (distance of 2), remove the captured opponent piece
+    if abs(to_row - from_row) == 2:
+        mid_row = (from_row + to_row) // 2
+        mid_col = (from_col + to_col) // 2
+        new_board[mid_row][mid_col] = ' '
+
+    # Handle promotion to king if reaching the last row
+    if piece == 'r' and to_row == 0:
+        new_board[to_row][to_col] = 'R'
+    elif piece == 'b' and to_row == 7:
+        new_board[to_row][to_col] = 'B'
+
+    return new_board
 
 # TODO: documentation and comments
 def play(board: list[list[str]], player: str, depth: int = 3):
 
     if not is_request_valid(board, player, depth):
         return {"error": "invalid request"}
-
-    print(check_game_over(board, player, get_legal_moves(board, player)))
-
+        
     return {"move": "not implemented"} # TODO
 
 # Limit exports to only the play function
