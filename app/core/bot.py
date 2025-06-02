@@ -182,12 +182,82 @@ def apply_move(board: list[list[str]], move: tuple[tuple[int, int], tuple[int, i
 
     return new_board
 
+def get_additional_captures(board, start_pos, piece) -> list[list[tuple[tuple[int, int], tuple[int, int]]]]:
+    """
+    Recursively finds all possible chained capture sequences starting from a given position.
+
+    A capture sequence is a list of jump moves a piece can make in succession,
+    each jumping over an opponent's piece and landing on an empty square.
+
+    Args:
+        board (list[list[str]]): The current state of the 8x8 checkers board.
+        start_pos (tuple[int, int]): The starting position of the piece.
+        piece (str): The character representing the piece ('r', 'R', 'b', or 'B').
+
+    Returns:
+        list[list[tuple]]: A list of capture sequences. Each sequence is a list of moves:
+            [((from_row, from_col), (to_row, to_col)), ...]
+    """
+    directions = {
+        'r': [(-1, -1), (-1, 1)],  # Red moves upward
+        'b': [(1, -1), (1, 1)],    # Black moves downward
+        'R': [(-1, -1), (-1, 1), (1, -1), (1, 1)],  # Red king
+        'B': [(-1, -1), (-1, 1), (1, -1), (1, 1)]   # Black king
+    }
+
+    # Determine which pieces are opponents
+    opponent_pieces = {'b', 'B'} if piece.lower() == 'r' else {'r', 'R'}
+    
+    # Stores all complete capture paths found
+    sequences = []
+
+    def dfs(board_state, path, row, col):
+        """
+        Recursive DFS (depth-first search) to find all valid capture chains from current position.
+
+        Args:
+            board_state (list[list[str]]): Current board state after previous moves.
+            path (list): Sequence of moves accumulated so far.
+            row (int): Current row of the piece.
+            col (int): Current column of the piece.
+        """
+        found = False  # Flag to track if any capture was made at this level
+
+        for dx, dy in directions[piece]:
+            mid_r, mid_c = row + dx, col + dy
+            end_r, end_c = row + 2 * dx, col + 2 * dy
+
+            # Ensure positions are within board bounds
+            if (
+                0 <= mid_r < 8 and 0 <= mid_c < 8 and
+                0 <= end_r < 8 and 0 <= end_c < 8 and
+                board_state[mid_r][mid_c] in opponent_pieces and
+                board_state[end_r][end_c] == ' '
+            ):
+                # Clone the board to simulate this move
+                new_board = [r.copy() for r in board_state]
+                new_board[row][col] = ' '
+                new_board[mid_r][mid_c] = ' '
+                new_board[end_r][end_c] = piece
+
+                # Add this jump to the path and continue recursively
+                dfs(new_board, path + [((row, col), (end_r, end_c))], end_r, end_c)
+                found = True
+
+        # If no more captures available, save the current path if it's non-empty
+        if not found and path:
+            sequences.append(path)
+
+    # Start DFS from the given position
+    dfs(board, [], *start_pos)
+    return sequences
+
 # TODO: documentation and comments
 def play(board: list[list[str]], player: str, depth: int = 3):
 
     if not is_request_valid(board, player, depth):
         return {"error": "invalid request"}
-        
+
     return {"move": "not implemented"} # TODO
 
 # Limit exports to only the play function
