@@ -65,9 +65,9 @@ def validate_depth(depth: int) -> bool:
         depth (int): The depth value.
 
     Returns:
-        bool: True if the depth is non-negative, False otherwise.
+        bool: True if the depth is positive, False otherwise.
     """
-    return depth >= 0
+    return depth > 0
 
 
 def is_request_valid(board: list[list[str]], player: str, depth: int) -> bool:

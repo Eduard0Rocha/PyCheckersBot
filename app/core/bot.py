@@ -1,3 +1,4 @@
+import math
 from core.utils import is_request_valid, print_board
 
 def evaluate_board(board: list[list[str]], player: str) -> int:
@@ -182,7 +183,11 @@ def apply_move(board: list[list[str]], move: tuple[tuple[int, int], tuple[int, i
 
     return new_board
 
-def get_additional_captures(board, start_pos, piece) -> list[list[tuple[tuple[int, int], tuple[int, int]]]]:
+def get_additional_captures(
+    board: list[list[str]], 
+    start_pos: tuple[int,int], 
+    piece: str
+) -> list[list[tuple[tuple[int, int], tuple[int, int]]]]:
     """
     Recursively finds all possible chained capture sequences starting from a given position.
 
@@ -211,7 +216,7 @@ def get_additional_captures(board, start_pos, piece) -> list[list[tuple[tuple[in
     # Stores all complete capture paths found
     sequences = []
 
-    def dfs(board_state, path, row, col):
+    def dfs(board_state: list[list[str]], path: list[tuple[tuple[int, int], tuple[int, int]]], row: int, col: int, current_piece: str):
         """
         Recursive DFS (depth-first search) to find all valid capture chains from current position.
 
@@ -221,9 +226,10 @@ def get_additional_captures(board, start_pos, piece) -> list[list[tuple[tuple[in
             row (int): Current row of the piece.
             col (int): Current column of the piece.
         """
+
         found = False  # Flag to track if any capture was made at this level
 
-        for dx, dy in directions[piece]:
+        for dx, dy in directions[current_piece]:
             mid_r, mid_c = row + dx, col + dy
             end_r, end_c = row + 2 * dx, col + 2 * dy
 
@@ -236,12 +242,23 @@ def get_additional_captures(board, start_pos, piece) -> list[list[tuple[tuple[in
             ):
                 # Clone the board to simulate this move
                 new_board = [r.copy() for r in board_state]
+
+                # Promote the piece if it reaches the last row
+                new_piece = current_piece
+                if current_piece == 'r' and end_r == 0:
+                    new_piece = 'R'  # Promote red pawn to king
+                elif current_piece == 'b' and end_r == 7:
+                    new_piece = 'B'  # Promote black pawn to king
+
+                # Remove the original piece and the captured opponent piece
                 new_board[row][col] = ' '
                 new_board[mid_r][mid_c] = ' '
-                new_board[end_r][end_c] = piece
 
+                # Place the promoted piece (or original if no promotion) on the destination square
+                new_board[end_r][end_c] = new_piece
+                
                 # Add this jump to the path and continue recursively
-                dfs(new_board, path + [((row, col), (end_r, end_c))], end_r, end_c)
+                dfs(new_board, path + [((row, col), (end_r, end_c))], end_r, end_c, new_piece)
                 found = True
 
         # If no more captures available, save the current path if it's non-empty
@@ -249,16 +266,168 @@ def get_additional_captures(board, start_pos, piece) -> list[list[tuple[tuple[in
             sequences.append(path)
 
     # Start DFS from the given position
-    dfs(board, [], *start_pos)
+    dfs(board, [], *start_pos, piece)
     return sequences
 
-# TODO: documentation and comments
-def play(board: list[list[str]], player: str, depth: int = 3):
 
+def minimax(
+    board: list[list[str]], 
+    player: str, 
+    depth: int, 
+    alpha: float, 
+    beta: float, 
+    maximizing_player: bool
+) -> tuple[int, list[tuple[tuple[int, int], tuple[int, int]]]]:
+    """
+    Minimax algorithm with alpha-beta pruning for checkers.
+
+    Args:
+        board (list[list[str]]): The current 8x8 game board.
+        player (str): The player whose move is being evaluated ('r' or 'b').
+        depth (int): The maximum depth of the search tree.
+        alpha (float): The best score that the maximizer can guarantee so far.
+        beta (float): The best score that the minimizer can guarantee so far.
+        maximizing_player (bool): True if we are maximizing for the current player.
+
+    Returns:
+        tuple:
+            - int: The evaluation score of the board.
+            - list: The best move sequence as a list of move tuples.
+    """
+    # Check if the game is over or if we've reached the maximum depth
+    game_status = check_game_over(board, player)
+    if depth == 0 or game_status["game_over"]:
+        # Evaluate the current board for the player and return
+        return evaluate_board(board, player if maximizing_player else ('r' if player == 'b' else 'b')), None
+
+    # Generate all possible legal moves for the current player
+    legal_moves = get_legal_moves(board, player)
+    best_move = None  # This will store the best move sequence
+
+    if maximizing_player:
+
+        max_eval = -math.inf  # Initialize with worst possible value for maximizer
+
+        # Explore each possible move
+        for move in legal_moves:
+
+            new_board = apply_move(board, move)  # Apply the move and get the new board
+
+            # Check if this was a capture (i.e., move over two rows)
+            if abs(move[1][0] - move[0][0]) == 2:
+                piece = new_board[move[1][0]][move[1][1]]
+
+                additional_captures = get_additional_captures(new_board, move[1], piece)
+
+                # Handle multi-jump sequences (chained captures)
+                if additional_captures:
+
+                    for sequence in additional_captures:
+
+                        temp_board = new_board
+                        for m in sequence:
+                            temp_board = apply_move(temp_board, m)
+
+                        # Recursive call for the same player (still in capture sequence)
+                        eval_score, _ = minimax(temp_board, player, depth, alpha, beta, True)
+
+                        # Update best evaluation if this move is better
+                        if eval_score > max_eval:
+                            max_eval = eval_score
+                            best_move = [move] + sequence
+
+                        # Alpha-beta pruning: update alpha and prune if necessary
+                        alpha = max(alpha, eval_score)
+                        if beta <= alpha:
+                            break  # Prune branch
+                    continue  # Skip normal recursion since captures were handled
+
+            # Regular recursive call for next player's turn
+            eval_score, _ = minimax(new_board, 'b' if player == 'r' else 'r', depth - 1, alpha, beta, False)
+
+            # Update best evaluation and move if this one is better
+            if eval_score > max_eval:
+                max_eval = eval_score
+                best_move = [move]
+
+            # Alpha-beta pruning
+            alpha = max(alpha, eval_score)
+            if beta <= alpha:
+                break  # Prune branch
+        return max_eval, best_move
+
+    else:
+
+        min_eval = math.inf  # Initialize with worst possible value for minimizer
+
+        for move in legal_moves:
+            new_board = apply_move(board, move)
+
+            # Check if this was a capture
+            if abs(move[1][0] - move[0][0]) == 2:
+                piece = board[move[0][0]][move[0][1]]
+                additional_captures = get_additional_captures(new_board, move[1], piece)
+
+                # Handle chained captures
+                if additional_captures:
+                    for sequence in additional_captures:
+                        temp_board = new_board
+                        for m in sequence:
+                            temp_board = apply_move(temp_board, m)
+
+                        # Recursive call, still minimizer's perspective
+                        eval_score, _ = minimax(temp_board, player, depth, alpha, beta, False)
+
+                        if eval_score < min_eval:
+                            min_eval = eval_score
+                            best_move = [move] + sequence
+
+                        beta = min(beta, eval_score)
+                        if beta <= alpha:
+                            break  # Prune
+                    continue
+
+            # Normal move
+            eval_score, _ = minimax(new_board, 'b' if player == 'r' else 'r', depth - 1, alpha, beta, True)
+
+            if eval_score < min_eval:
+                min_eval = eval_score
+                best_move = [move]
+
+            beta = min(beta, eval_score)
+            if beta <= alpha:
+                break  # Prune
+        return min_eval, best_move
+
+def play(board: list[list[str]], player: str, depth: int = 3):
+    """
+    Given a board and current player, compute the best move sequence using minimax.
+
+    Args:
+        board (list[list[str]]): Current 8x8 checkers board state.
+        player (str): The player to move ('r' or 'b').
+        depth (int): Maximum depth for minimax search (default 3).
+
+    Returns:
+        dict: {
+            "move": list of moves (each move is ((from_row, from_col), (to_row, to_col)))
+        }
+        or {"error": str} if input invalid or no moves available.
+    """
+    # Validate the request parameters and board state
     if not is_request_valid(board, player, depth):
         return {"error": "invalid request"}
 
-    return {"move": "not implemented"} # TODO
+    # Use minimax to get the best evaluation score and best move sequence
+    _, best_move_sequence = minimax(board, player, depth, -math.inf, math.inf, True)
+
+    if best_move_sequence is None or len(best_move_sequence) == 0:
+        # No legal moves available, player loses or game over
+        return {"error": "no moves available"}
+
+    # Return the best move sequence found by minimax
+    return {"move": best_move_sequence}
+
 
 # Limit exports to only the play function
 __all__ = ["play"]
