@@ -94,14 +94,15 @@ Once running, you can access the interactive documentation at:
 PyCheckersBot/
 ├── app/
 │ ├── api/
-│ │ ├── models.py # Pydantic schemas for request payload validation and API documentation
-│ │ └── routes.py # API route handlers (FastAPI)
+│ │ ├── models.py    # Pydantic schemas for request payload validation and API documentation
+│ │ └── routes.py    # API route handlers (FastAPI)
 │ ├── core/
-│ │ ├── bot.py # Core bot logic: minimax, move generation, etc.
-│ │ └── utils.py # Input validation utilities and debugging tools for board state representation
-│ └─── main.py # FastAPI app instance and router registration
-├── input_examples/ # JSON files with request examples for testing
-├── README.md # Project documentation
+│ │ ├── bot.py       # Core bot logic: minimax, move generation, etc.
+│ │ └── utils.py     # Input validation utilities and debugging tools for board state representation
+│ └─── main.py       # FastAPI app instance and router registration
+├── input_examples/  # JSON files with request examples for testing
+├── LICENSE          # MIT License
+├── README.md        # Project documentation
 └── requirements.txt # Python dependencies
 ```
 
