@@ -100,7 +100,7 @@ PyCheckersBot/
 │ │ ├── bot.py # Core bot logic: minimax, move generation, etc.
 │ │ ├── utils.py # Input validation utilities and debugging tools for board state representation
 │ ├─── main.py # FastAPI app instance and router registration
-│ └── input_examples/ # JSON files with request examples for testing
+└── input_examples/ # JSON files with request examples for testing
 ├── README.md # Project documentation
 └── requirements.txt # Python dependencies
 ```
